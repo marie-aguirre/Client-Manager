@@ -463,7 +463,7 @@ text_path_client = Label( frame1, text = "Select your Client list file (csv only
 text_path_client.grid(row = 0 , column = 0)
 
 path_client = StringVar()
-path_client.set("Clients_list.csv")	
+path_client.set("Clients_list_example.csv")	
 # variable of the entry set as normal to point my client list
 
 entry_path_client = Entry (frame1, textvariable = path_client)
