@@ -285,7 +285,7 @@ def shut_down():
 	
 	for client in range(len(chart)):
 		
-		if status[x][0] == "1":
+		if status[client][0] == "1":
 			# it can only work on ready clients
 			
 			call(["ssh", "-q", "-o", "UserKnownHostsFile=/dev/null", "-o", "StrictHostKeyChecking=no", "-f", "neurodebian@%s" % chart[client][0],"''sudo poweroff''"])
@@ -355,6 +355,8 @@ def select_file():
 	list_box()
 	# recreate the new listbox with the new data
 	
+	ready()
+	busy()
 	Window.update()
 	# refresh
 	
@@ -367,12 +369,16 @@ def select_file():
 def start_task():
 	# function to launch a task
 	
+	support_task = entry_support.get()
+	path_task = file_path.get()
+	dirname_task = os.path.dirname(path_task) 
+	basename_task =	os.path.basename(path_task)
 	client = 0
 	
 	for client in range(len(chart)):
 		
 		if status[client][1] == '1':
-			output_X11 = os.popen("ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -f neurodebian@%s ''  '' &" % chart[client][0], "r").read()
+			output_X11 = os.popen("ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -f neurodebian@%s '' export DISPLAY=:0; cd %s; xterm -e %s --eval %s'' &" % (chart[client][0], dirname_task,support_task, basename_task), "r").read()
 			# if client are ready then launch the task file to clients selected
 			
 	event("Task send %s." % file_path)
@@ -397,7 +403,7 @@ def end_task():
 	for client in range(len(chart)):
 		
 		if status[client][1] == '1':
-			output_X11 = os.popen("ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -f neurodebian@%s '' killall '' &" % chart[client][0], "r").read()
+			output_X11 = os.popen("ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -f neurodebian@%s '' kill '' &" % chart[client][0], "r").read()
 			# if clients are ready then kill ALL task so that it isn't busy anymore
 			
 	event("Tasks end.")
@@ -463,7 +469,7 @@ text_path_client = Label( frame1, text = "Select your Client list file (csv only
 text_path_client.grid(row = 0 , column = 0)
 
 path_client = StringVar()
-path_client.set("Clients_list_example.csv")	
+path_client.set("Clients_list.csv")	
 # variable of the entry set as normal to point my client list
 
 entry_path_client = Entry (frame1, textvariable = path_client)
@@ -600,7 +606,7 @@ button_refresh = Button(frame5, text = "refresh", command = check_box)
 button_refresh.grid(row = 0, column = 2)
 # button linked to the check_box function to uptdate nc =  number of client selected
 
-text_choice = Label(frame5, text = "Total of client to awake divise by ", bg = "bisque")
+text_choice = Label(frame5, text = "Max awaking client group : ", bg = "bisque")
 text_choice.grid (row = 1, column = 0)
 
 nb = IntVar()
@@ -657,16 +663,24 @@ browse_button = Button(frame7, text = "Browse", command = slot_browse)
 browse_button.grid(row = 0, column = 2)
 # button linked to the slot_browse function
 
+text_support = Label ( frame7, text = "Support of your task : ", bg = "bisque")
+text_support.grid(row = 1, column = 0)
+
+support = StringVar()
+support.set("octave")
+entry_support = Entry(frame7, textvariable = support)
+entry_support.grid(row = 1, column = 1)
+
 button_task = Button(frame7, text = 'Start Task', command = start_task)
-button_task.grid(row  = 1, column = 2)
+button_task.grid(row  = 2, column = 2)
 # button linked to the start_task function
 
 button_etask = Button(frame7, text = 'End Task', command = end_task)
-button_etask.grid(row  = 1, column = 3)
+button_etask.grid(row  = 2, column = 3)
 # button linked to the end_task function
 
 text_space3 = Label (frame7, text = "\n", bg = "bisque")
-text_space3.grid (row = 1, column = 0, columnspan = 3)
+text_space3.grid (row = 3, column = 0, columnspan = 3)
 
 frame7.grid(row = 6 , column = 0, columnspan = 2)
 
