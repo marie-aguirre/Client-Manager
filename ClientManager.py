@@ -263,7 +263,7 @@ def wake_up():
 	# get the x of "wake up x by x"
 	n = 0	
 	number_awake = 0
-			
+	nb_idle1 = 0		
 	for n in range(len(chart)):
 		
 		if status[n][0] == "1" and status[n][1] == "-1":
@@ -276,26 +276,25 @@ def wake_up():
 			if output_awake.find("Sending") == 0:
 				all_button[n].configure(fg = "orange")
 				# if it's weel done then put hostname orange
-				status[n][1] = 0
+				status[n][2] = 0
 			number_awake = number_awake + 1
 			
 				
 			if number_awake == entry_nb:
 				
-				nb_idle = counting()
+				nb_idle0 = counting()
 				
 				event("Checking idle clients...")
-				while nb_idle < number_awake:
+				while nb_idle1 <= nb_idle0:
 					for client in range(len(chart)):
-						if status[client][0] =='1':
+						if status[client][0] =='1' and status[client][2] == '0':
 							idle(client)	
 					
-					nb_idle = counting()
-					print ("%s left to be idle." % (nc - nb_idle))
+					nb_idle1 = counting()
+					print ("%s left to be idle." % (nc - nb_idle1))
 				event("Check idle client done.")	
 					# wait until all client selected are idle
-				number_awake = number_awake - 1
-				
+				number_awake = entry_nb - (nb_idle1 - nb_idle0)				
 	
 	client = 0
 	
@@ -510,7 +509,7 @@ def start_task():
 				# if client are idle then launch the ..
 				# .. task file to clients selected
 				busy(client)
-				event("Task %s send to %s." % (file_path.get(), chart[client][0]))
+				event("Task %s send to %s." % (basename_task[0], chart[client][0]))
 				print ("Task %s send to %s." % (file_path.get(), chart[client][0]))
 		event("Checking busy clients...")
 	
@@ -538,7 +537,7 @@ def start_task():
 				# if client are idle then launch the ..
 				# .. task file to clients selected
 				busy(client)
-				event("Task %s send to %s." % (file_path.get(), chart[client][0]))
+				event("Task %s send to %s." % (basename_task[0], chart[client][0]))
 				print("Task %s send to %s." % (file_path.get(), chart[client][0]))
 		event("Checking busy clients...")
 	
