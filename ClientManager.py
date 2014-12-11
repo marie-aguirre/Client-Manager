@@ -1,11 +1,11 @@
-# cliente-up/shutdown program of GATELAB for clients through a server
-# Program.py
+# Client Manager program of GATELAB for clients through a server
+# ClientManager.py
 # python 2.7
 
-# This program needs to have the awake, numpy and tkinter librairies
+# This program needs to have the awake, numpy, fping and tkinter librairies
 
 
-# To launch the program just tap in a terminal "sudo python Programme.py"
+# To launch the program just tap in a terminal "sudo python Clientnmanager.py"
 
 
 import csv
@@ -56,6 +56,11 @@ pwd = "passwordL"
 site = "site"
 experiment = "experimentname"
 user2 = "username"
+support_task = "octave"
+url = "https://www.gate.cnrs.fr/?lang=fr2"
+iceweasel = "iceweasel"
+command = "python"
+
 
 #-------------------------- Event
 
@@ -90,7 +95,6 @@ def event(var):
 
 
 #--------------------------Check client's status
-
 
 
 def idle(client):
@@ -137,20 +141,21 @@ def idle(client):
 
 
 	
-def busy(client):
+def busy(client, support_task):
 	
 	
-	support_task = var_sup.get()
-	
-	
-	
-		
+			
 	if status[client][1] == "1":
 		# only if client is awake and idle check if octave is running
 		# if a client is only awake it couldn't be busy
-			
-		output_busy = os.popen("ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -f neurodebian@%s 'ps aux | grep %s' " % (chart[client][0], support_task), "r").read()
-		event("Sending busy question...")
+		
+		if support_task == command:
+			output_busy = os.popen("""ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -f neurodebian@%s "ps aux | grep '%s' " """ % (chart[client][0], command), "r").read()
+			event("Sending busy question...")
+		
+		else:
+			output_busy = os.popen("ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -f neurodebian@%s 'ps aux | grep %s' " % (chart[client][0], support_task), "r").read()
+			event("Sending busy question...")
 			
 		if output_busy.find("xterm -e %s" % support_task) != -1:
 			all_button[client].configure(fg = "red")
@@ -168,76 +173,12 @@ def busy(client):
 		status[client][2] = -1
 		#complete the status chart (-1 = not idle)
 	
-			
-#---------------------------Verification of which box is checked
-
-
-def check_box():
-	# function to count and complete the status chart
-	
-	global nc, status
-	
-	var0= 0
-	
-	for v in vars:
-		status[var0][0] = v.get() 
-		var0 = var0 + 1  
-		# put all value of checkboxes in the status chart 
-	
-	box = 0	
-	number_checked = 0
-	
-	for box in range(len(status)):
-		
-		if status[box][0] == "1":
-			number_checked = number_checked + 1
-			# counting number of checkboxes selected
-	
-	nc = number_checked
-	return nc
-	event("Check box done.")
-	text_number_checked.config(text = "\n Number of client selected : %s" % nc)
-	# update number of checkboxes selected in GUI
-
-#---------------------Definition of select_all and deselect_all function		
-
-
-def select_all():
-	#function to select all checkboxes in one clic
-	
-    for i in all_button:
-        i.select()
-		
-    event("Select all")
 
 
 
-def deselect_all():
-	#function to deselect all checkboxes in one clic
-	
-    for i in all_button:
-        i.deselect() 
-    
-    event("Deselect all")   
 
 
-#---------------------------- Definition of counting
 
-nb_idle = 0
-
-def counting():
-	
-	global nb_idle
-	client = 0
-	nb_idle = 0
-	for client in range(len(status)):
-		
-		if status[client][1] == '1':
-			if status[client][0] == '1':
-				nb_idle= nb_idle + 1
-				# counting number of client idle
-	return nb_idle
-	event("Number of idle client : %s" % nb_idle)
 #----------------------------Defnition of wake_up fonction 
 
 
@@ -350,72 +291,8 @@ def shut_down():
 	event("Shut down done.")	
 			
 
-#-------------------------- Definition of slot_browse
-
-def slot_browse():
-	#function to get the file path of the task experiment file selected
-	
-	global file_path
-	
-	_fpath = tkFileDialog.askopenfilename()
-	# open the TkFileDialog so that user can choose his file
-	
-	file_path.set(_fpath)
-
-	basename_task =	os.path.basename(file_path.get())
-	text_path.config(text = "Task file selected : %s " % basename_task)
-	event("Task file selected.")
-	
-	
 
 
-#-------------------------Open file
-
-def open_csvfile():
-	# client to open the client list file and set status and chart chart
-	global chart, status, status_name
-	
-	file_name = str(path_client.get())			
-	file_open = open (file_name, "rb")	
-	# open the file and read it
-	
-	
-	
-	chart = np.loadtxt(file_open, dtype = str, delimiter = ",")	
-	# put the data into a chart and see them as a string
-	
-	status = np.copy(chart)
-	status_name = np.copy(chart)
-	
-	
-	
-	
-#--------------------------Definition of select-file
-
-def select_file():
-	#function to get the file path of the client list file selected
-	
-	global path_client, vars, all_button
-	
-	path_file = tkFileDialog.askopenfilename(filetypes = [("Fichier csv", "*.csv")])
-	# open the TkFileDialog so that user can choose his file
-	
-	(path_client).set(path_file)
-	text_path_client.config(text = "Client list file selected : %s " % path_client.get())
-	open_csvfile()
-	text.delete("0.0", END)
-	# delete what was in the text that countain list of checkboxes
-	
-	del(vars[:])
-	del(all_button[:])
-	# delete the list value and the list of checkboxes
-	
-	list_box()
-	# recreate the new listbox with the new data
-	Refresh()
-	Window.update()
-	# refresh
-	
 	
 	
 	
@@ -430,7 +307,6 @@ def start_task():
 	event("Start task")
 	
 	check_box()
-	support_task = var_sup.get()
 	entire_path = file_path.get()
 	
 	if entire_path.find("/nfsroot/experiments/") != -1:
@@ -508,14 +384,14 @@ def start_task():
 				
 				# if client are idle then launch the ..
 				# .. task file to clients selected
-				busy(client)
+				busy(client, support_task)
 				event("Task %s send to %s." % (basename_task[0], chart[client][0]))
 				print ("Task %s send to %s." % (file_path.get(), chart[client][0]))
 		event("Checking busy clients...")
 	
 		for client in range(len(chart)):	
 			while status[client][0] == "1" and status[client][2] != "1":
-				busy(client)
+				busy(client, support_task)
 				
 		event("Check busy clients done.")
 		# check if they're busy
@@ -532,21 +408,22 @@ def start_task():
 	
 	else:
 		for client in range(len(chart)):
-			if status[client][1] == '1' and status[client][1] == '1':
-				output_start = os.popen("ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -f neurodebian@%s 'export DISPLAY=:0; cd %s; pwd; xterm -e %s --eval %s' " % (chart[client][0], dirname_task, support_task, basename_task[0]), "r").read()
+			if status[client][0] == '1' and status[client][1] == '1':
+				output_start = os.popen("ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -f neurodebian@%s 'export DISPLAY=:0; cd %s; pwd; xterm -e %s --eval %s' " % (chart[client][0], dirname_task, support_task, basename_task[0]))
 				# if client are idle then launch the ..
 				# .. task file to clients selected
-				busy(client)
+				busy(client, support_task)
 				event("Task %s send to %s." % (basename_task[0], chart[client][0]))
-				print("Task %s send to %s." % (file_path.get(), chart[client][0]))
+				print ("Task %s send to %s." % (file_path.get(), chart[client][0]))
 		event("Checking busy clients...")
 	
 		for client in range(len(chart)):
 			while status[client][0] == "1" and status[client][2] != "1":
-				busy(client)
+				busy(client, support_task)
 				# check if they're busy
 		event("Check busy clients done.")
-
+	
+	event("Start task done.")
 
 
 
@@ -557,9 +434,10 @@ def end_task():
 	# function to kill all tasks
 	
 	global status_name
+	check_box()
+	event("End Task")
 	
 	client = 0
-	support_task = var_sup.get()
 	path_task = file_path.get()
 	basename_task =	os.path.basename(path_task)
 
@@ -568,13 +446,13 @@ def end_task():
 		if status[client][1] == '1' and status[client][0] == '1':
 			output_X11 = os.popen("ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -f neurodebian@%s '' killall -9 %s '' &" % (chart[client][0], support_task), "r").read()
 			# if clients are idle then kill ALL task so that it isn't busy anymore
-			busy(client)	
+			busy(client, support_task)	
 			idle(client)
 			event("Task end command send to %s" % chart[client][0])
 	
 	for client in range(len(chart)):
 		while status[client][0] == "1" and status[client][2] == "1":
-			busy(client)
+			busy(client, support_task)
 			# check if they're busy
 	
 	stat_db = vardb
@@ -598,6 +476,419 @@ def end_task():
 				event("Database subject status update")		
 		database.close()
 	event("Tasks end.")
+	
+	
+#------------------- Definition of send_url
+
+
+def send_url():
+	
+	event("Send Url")
+	
+	check_box()
+	url = var_url.get()
+	
+		
+	client = 0
+	
+	for client in range(len(chart)):
+		if status[client][0] == '1':
+			idle(client)
+			
+			if status[client][1] == '1':
+				
+				output_send = os.popen("ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -f neurodebian@%s 'export DISPLAY=:0;  xterm -e iceweasel %s &' " % (chart[client][0], url))
+				
+				# if client are idle then send the url into iceweasel..
+				# .. to clients selected
+				busy(client, iceweasel)
+				event("Url %s send to %s." % (url, chart[client][0]))
+				print ("Url %s send to %s." % (url, chart[client][0]))
+		event("Checking busy clients...")
+	
+	for client in range(len(chart)):	
+		while status[client][0] == "1" and status[client][2] != "1":
+			busy(client, iceweasel)
+				
+		event("Check busy clients done.")
+		# check if they're busy
+	event("Send url done.")		
+		
+
+#-------------------- Definition of close_browser	
+
+
+def close_browser():
+	
+	global status_name
+	
+	event("Close Browser")
+	check_box()
+	client = 0
+	
+	for client in range(len(chart)):
+		
+		if status[client][1] == '1' and status[client][0] == '1':
+			output_X11 = os.popen("ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -f neurodebian@%s '' killall -9 %s '' &" % (chart[client][0], iceweasel), "r").read()
+			# if clients are idle then kill ALL task so that it isn't busy anymore
+			busy(client, iceweasel)	
+			idle(client)
+			event("Close browser command send to %s" % chart[client][0])
+	
+	for client in range(len(chart)):
+		while status[client][0] == "1" and status[client][2] == "1":
+			busy(client, iceweasel)
+			# check if they're busy
+	
+	
+	event("Browser close.")	
+	
+			
+
+
+
+	
+	
+	
+	
+#------------------------- Definition of send_command
+
+
+def send_command():
+	
+	global int2, status_name
+	
+	event("Send shell command")
+	
+	check_box()
+		
+	client = 0
+	stat_db = vardb
+	
+	
+		
+	if stat_db == 1:
+		
+		event("Shell command using database")
+		
+		my_conv = { FIELD_TYPE.LONG: int }
+		database = MySQLdb.connect(server, user1, pwd, DB, conv= my_conv)
+		cursor = database.cursor()
+		
+		add_session = ("INSERT INTO session (User, Experiment, Site)  VALUES ('%s','%s', '%s')" % (user2, experiment, site))
+		cursor.execute(add_session)
+		database.commit()
+		
+		event ("Database session created")
+		
+		select_session = ("SELECT MAX(SessionID) FROM session")
+		cursor.execute(select_session)
+		nb_session = cursor.fetchall()
+		int1 = reduce(lambda rst, d: rst * 10 + d, nb_session)
+		int2 = reduce(lambda rst, d: rst * 10 + d, int1)
+		
+		
+		
+		for client in range(len(chart)):
+			
+			status_name[client][2] = chart[client][0].lower()
+			
+			
+			if status[client][0] == "1":
+				if status[client][1] == "1":
+					status_name[client][0] = "IDDLE"
+				if status[client][1] == "0":
+					status_name[client][0] = "AWAKE"
+				if status[client][1] == "-1":
+					status_name[client][0] = "SLEEPY"	
+			
+				
+				add_subject = ("INSERT INTO subjects (Hostname, Session, TriggerCode, Status)  VALUES ('%s', '%s', '%s', '%s')" % (status_name[client][2], int2, (client +1), status_name[client][0]))
+				cursor.execute(add_subject)
+				database.commit()
+				select_hostname = ("SELECT MAX(SubjectID) FROM subjects")
+				cursor.execute(select_hostname)
+				nb_hostname = int(cursor.fetchone()[0])
+				
+				status_name[client][1] = nb_hostname
+				
+				event("Database subjects created")
+				print("Database subjects created")
+		
+		for client in range(len(chart)):
+			
+			if status[client][0] == '1' and status[client][1] == '1':
+				
+				output_start = os.popen("ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -f neurodebian@%s 'export DISPLAY=:0; xterm -e %s ' " % (chart[client][0], command))
+				
+				# if client are idle then send the ..
+				# .. shell command to clients selected
+				busy(client, command)
+				event("Shell command %s send to %s." % (command, chart[client][0]))
+				print ("shell command %s send to %s." % (command, chart[client][0]))
+		event("Checking busy clients...")
+	
+		for client in range(len(chart)):	
+			while status[client][0] == "1" and status[client][2] != "1":
+				busy(client, command)
+				
+		event("Check busy clients done.")
+		# check if they're busy
+				
+		for client in range(len(chart)):		
+			if status[client][0] == "1":
+				if status[client][2] == "1":
+					status_name[client][0] = "BUSY"
+				
+				update_subject = ("UPDATE subjects SET Status = '%s' WHERE SubjectID = '%s' " % (status_name[client][0], status_name[client][1]))
+				cursor.execute(update_subject)
+				database.commit()
+		database.close()
+	
+	else:
+		for client in range(len(chart)):
+			if status[client][0] == '1' and status[client][1] == '1':
+				output_start = os.popen("ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -f neurodebian@%s 'export DISPLAY=:0; xterm -e %s ' " % (chart[client][0], command))
+				
+				# if client are idle then send the ..
+				# .. shell command to clients selected
+				busy(client, command)
+				event("Shell command %s send to %s." % (command, chart[client][0]))
+				print ("shell command %s send to %s." % (command, chart[client][0]))
+		event("Checking busy clients...")
+	
+		for client in range(len(chart)):	
+			while status[client][0] == "1" and status[client][2] != "1":
+				busy(client, command)
+				
+		event("Check busy clients done.")
+		# check if they're busy
+	
+	event("Shell command send.")
+
+
+
+#------------------------- Definition of kill_command	
+	
+	
+def kill_command():
+	
+	
+	global status_name
+	
+	event("Kill command")
+	check_box()
+	client = 0
+	
+	for client in range(len(chart)):
+		
+		if status[client][1] == '1' and status[client][0] == '1':
+			output_kill = os.popen("""ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -f neurodebian@%s " ps aux | grep '%s' " """ % (chart[client][0], command), "r").read()
+			sp = output_kill.split("\n")
+			amount = len(sp)
+			amoun = amount -1
+			del sp[amoun]		
+			for var in range(len(sp)):
+				tab = sp[var].split()
+				
+				
+				output_kill = os.popen("""ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -f neurodebian@%s " kill -9 %s" """ % (chart[client][0], int(tab[1])), "r").read()
+				
+	for client in range(len(chart)):	
+		while status[client][0] == "1" and status[client][2] == "1":
+			busy(client, command)			
+				
+	idle(client)
+	event("Kill shell command send to %s" % chart[client][0])
+	
+	
+	
+	stat_db = vardb
+	
+	
+	if stat_db == '1':
+		
+		my_conv = { FIELD_TYPE.LONG: int }
+		database = MySQLdb.connect(server, user1, pwd, DB, conv= my_conv)
+		cursor = database.cursor()
+		
+		for client in range(len(chart)):		
+			if status[client][0] == "1":
+				if status[client][2] == "0":
+					status_name[client][0] = "IDLE"
+				
+				update_subject = ("UPDATE subjects SET Status = '%s' WHERE SubjectID = '%s' " % (status_name[client][0], status_name[client][1]))
+				cursor.execute(update_subject)
+				database.commit()	
+				
+				event("Database subject status update")		
+		database.close()
+	event("Shell command end.")
+	
+	
+	
+	
+	
+	
+	
+
+
+
+
+#-----------------------------------------------------------------------
+#-----------------------------------------------------------------------
+
+
+
+
+
+
+
+
+#---------------------------Verification of which box is checked
+
+
+def check_box():
+	# function to count and complete the status chart
+	
+	global nc, status
+	
+	var0= 0
+	
+	for v in vars:
+		status[var0][0] = v.get() 
+		var0 = var0 + 1  
+		# put all value of checkboxes in the status chart 
+	
+	box = 0	
+	number_checked = 0
+	
+	for box in range(len(status)):
+		
+		if status[box][0] == "1":
+			number_checked = number_checked + 1
+			# counting number of checkboxes selected
+	
+	nc = number_checked
+	return nc
+	event("Check box done.")
+	text_number_checked.config(text = "\n Number of client selected : %s" % nc)
+	# update number of checkboxes selected in GUI
+
+
+
+#---------------------Definition of select_all and deselect_all function		
+
+
+def select_all():
+	#function to select all checkboxes in one clic
+	
+    for i in all_button:
+        i.select()
+		
+    event("Select all")
+
+
+
+def deselect_all():
+	#function to deselect all checkboxes in one clic
+	
+    for i in all_button:
+        i.deselect() 
+    
+    event("Deselect all")   
+
+
+
+#---------------------------- Definition of counting
+
+nb_idle = 0
+
+def counting():
+	
+	global nb_idle
+	client = 0
+	nb_idle = 0
+	for client in range(len(status)):
+		
+		if status[client][1] == '1':
+			if status[client][0] == '1':
+				nb_idle= nb_idle + 1
+				# counting number of client idle
+	return nb_idle
+	event("Number of idle client : %s" % nb_idle)
+
+
+
+#-------------------------- Definition of slot_browse
+
+
+
+def slot_browse():
+	#function to get the file path of the task experiment file selected
+	
+	global file_path
+	
+	_fpath = tkFileDialog.askopenfilename()
+	# open the TkFileDialog so that user can choose his file
+	
+	file_path.set(_fpath)
+
+	basename_task =	os.path.basename(file_path.get())
+
+	event("Task file selected.")
+	
+	
+
+
+#-------------------------Open file
+
+def open_csvfile():
+	# client to open the client list file and set status and chart chart
+	global chart, status, status_name
+	
+	file_name = str(path_client.get())			
+	file_open = open (file_name, "rb")	
+	# open the file and read it
+	
+	
+	
+	chart = np.loadtxt(file_open, dtype = str, delimiter = ",")	
+	# put the data into a chart and see them as a string
+	
+	status = np.copy(chart)
+	status_name = np.copy(chart)
+	
+	
+	
+	
+#--------------------------Definition of select-file
+
+def select_file():
+	#function to get the file path of the client list file selected
+	
+	global path_client, vars, all_button
+	
+	path_file = tkFileDialog.askopenfilename(filetypes = [("Fichier csv", "*.csv")])
+	# open the TkFileDialog so that user can choose his file
+	
+	(path_client).set(path_file)
+	text_path_client.config(text = "Client list file selected : %s " % path_client.get())
+	open_csvfile()
+	text.delete("0.0", END)
+	# delete what was in the text that countain list of checkboxes
+	
+	del(vars[:])
+	del(all_button[:])
+	# delete the list value and the list of checkboxes
+	
+	list_box()
+	# recreate the new listbox with the new data
+	
+	Window.update()
+	# refresh
+	
+
 		
 
 #------------------------ Definition of web_wiki
@@ -662,7 +953,7 @@ def save_config():
 
 def save_support():
 	
-	event("Suport setting modify")
+	event("Program setting modify")
 	
 	global support_task
 	
@@ -670,7 +961,24 @@ def save_support():
 	
 	
 	
+#-------------------- Definition of save_url
 
+def save_url():
+	event("Url setting modify")
+	
+	global url 
+	
+	url = var_url.get() 
+
+
+
+#------------------ Definition of save_command
+
+def save_command():
+	event("Shell command modify")
+	
+	global command
+	command = var_command.get()
 	
 
 
@@ -690,8 +998,7 @@ def handler_win():
 
 #----------------------- Definition of refresh
 
-def Refresh():
-	
+def refresh():
 	event("Refresh Status")
 	
 	event("Checking idle clients...")
@@ -699,9 +1006,28 @@ def Refresh():
 	
 	for client in range(len(chart)):
 		idle(client)
-		busy(client)
+		busy(client, support_task)
+		busy(client, iceweasel)
 	event("Check idle client done.")
 	event("Check busy clients done.")
+
+
+
+
+
+
+
+
+
+
+
+#-----------------------------------------------------------------------
+#-----------------------------------------------------------------------
+
+
+
+
+
 
 
 
@@ -710,9 +1036,7 @@ def Refresh():
 #------------------------ Config
 
 
-
-
-   
+  
 def Config():
 	
 	global var_db, server_config, DB_config, user1_config, pwd_config 
@@ -778,7 +1102,7 @@ def Config():
 	text_spa3.grid(row = 9, column = 0, columnspan = 2)
 	
 	text_write = Label (Config, 
-	text = "Parameter writing in the data base session ",
+	text = "Parameter to write in the data base session ",
 		bg = "bisque")
 	text_write.grid(row = 10, column = 0)
 	
@@ -811,10 +1135,10 @@ def Config():
 	
 	
 	
-	OK_button = Button (Config, text = "Save", command = save_config)
+	OK_button = Button (Config, text = "OK", command = save_config)
 	OK_button.grid(row = 15, column = 0)
 	
-	cancel_button = Button(Config, text = "Cancel", 
+	cancel_button = Button(Config, text = "Quit", 
 		command = Config.destroy) 
 	cancel_button.grid(row = 15, column = 1)
 	
@@ -825,45 +1149,63 @@ def Config():
 
 
 
-#------------------------ Support
+#------------------------ Program
 
 
 
-def Support():
+def Program():
 	
 	global var_sup
 	
-	event("Support")
+	event("Program")
 	
-	Support = Toplevel()
-	Support.title("Choice of Support")
-	Support["bg"] = "bisque"
+	Program = Toplevel()
+	Program.title("Choice of program")
+	Program["bg"] = "bisque"
 	
 	
-	text_spac = Label (Support, text = "\n ", bg = "bisque")
+	text_spac = Label (Program, text = "\n ", bg = "bisque")
 	text_spac.grid(row = 0, column = 0, columnspan = 2)
 	
-	text_support = Label (Support, text = "Support of your task : ", 
+	text_support = Label (Program, text = "Program which support your task : ", 
 		bg = "bisque")
 	text_support.grid(row = 1, column = 0)
 
 		
-	entry_support = Entry(Support, textvariable = var_sup)
+	entry_support = Entry(Program, textvariable = var_sup)
 	entry_support.grid(row = 1, column = 1)
 	
-	text_spac2 = Label (Support, text = "\n ", bg = "bisque")
-	text_spac2.grid(row = 2, column = 0, columnspan = 2)
+	OK_button = Button (Program, text = "OK", command = save_support)
+	OK_button.grid(row = 2, column = 1)
+		
+	text_spac2 = Label (Program, text = "\n ", bg = "bisque")
+	text_spac2.grid(row = 3, column = 0, columnspan = 2)
+	
+	text_path = Label(Program, text = "Task file selected: %s" 
+		% os.path.basename(file_path.get()), bg = "bisque")
+	text_path.grid(row = 4 , column = 0)
+	
+	text_spac3 = Label (Program, text = "\n ", bg = "bisque")
+	text_spac3.grid(row = 5, column = 0, columnspan = 2)
+	
+	button_task = Button(Program, text = 'Start Task', command = start_task)
+	button_task.grid(row  = 6, column = 0, sticky = N+S+E+W)
+	# button linked to the start_task function
+
+	button_etask = Button(Program, text = 'End Task', command = end_task)
+	button_etask.grid(row  = 6, column = 1, sticky = N+S+E+W)
+	# button linked to the end_task function
+
+	text_space3 = Label (Program, text = "\n", bg = "bisque")
+	text_space3.grid (row = 7, column = 0, columnspan = 2)
 		
 	
-	OK_button = Button (Support, text = "Save", command = save_support)
-	OK_button.grid(row = 3, column = 0)
 	
+	cancel_button = Button(Program, text = "Quit",
+		command = Program.destroy) 
+	cancel_button.grid(row = 8, column = 1)
 	
-	cancel_button = Button(Support, text = "Cancel",
-		command = Support.destroy) 
-	cancel_button.grid(row = 3, column = 1)
-	
-	Support.mainloop()
+	Program.mainloop()
 	
 
 
@@ -886,7 +1228,8 @@ def Group():
 	text_spac = Label (Group, text = "\n ", bg = "bisque")
 	text_spac.grid(row = 0, column = 0, columnspan = 2)
 	
-	text_choice = Label(Group, text = "Max awaking client group :", bg = "bisque")
+	text_choice = Label(Group, text = "Max awaking client group :", 
+		bg = "bisque")
 	text_choice.grid (row = 1, column = 0)
 
 	
@@ -899,8 +1242,7 @@ def Group():
 	text_spac2 = Label (Group, text = "\n ", bg = "bisque")
 	text_spac2.grid(row = 3, column = 0, columnspan = 2)
 		
-	
-		
+			
 	OK_button = Button(Group, text = "OK",
 		command = Group.destroy) 
 	OK_button.grid(row = 4, column = 0)
@@ -908,6 +1250,131 @@ def Group():
 	Group.mainloop()
 
 
+#--------------------------- Browser
+
+def Browser():
+
+	global var_url
+
+	event("Browser")
+
+	Browser = Toplevel()
+	Browser.title("Browser")
+	Browser["bg"] = "bisque"
+	
+	text_spa = Label (Browser, text = "\n ", bg = "bisque")
+	text_spa.grid(row = 0, column = 0, columnspan = 2)	
+	
+	text_web = Label (Browser, 
+		text = " If you want to use a webrowser for your task : \n ",
+			bg = "bisque")
+	text_web.grid(row = 1, column = 0, columnspan = 2)
+	
+	text_url = Label (Browser, text = "Url : ", bg = "bisque")
+	text_url.grid(row = 2, column = 0)
+	
+	entry_url = Entry(Browser, textvariable = var_url, width = 80)
+	entry_url.grid(row = 2, column = 1)
+
+	OK_button = Button(Browser, text = "OK",
+		command = save_url) 
+	OK_button.grid(row = 3, column = 1)
+	
+	
+		
+	text_spa2 = Label (Browser, text = "\n ", bg = "bisque")
+	text_spa2.grid(row = 4, column = 0, columnspan = 2)
+	
+	button_send = Button(Browser, text = 'Send Url', command = send_url)
+	button_send.grid(row  = 5, column = 0, sticky = N+S+E+W)
+	
+	button_close = Button(Browser, text = 'Close Browser', command = close_browser)
+	button_close.grid(row  = 5, column = 1, sticky = N+S+E+W)
+	
+	text_space3 = Label (Browser, text = "\n", bg = "bisque")
+	text_space3.grid (row = 6, column = 0, columnspan = 2)
+		
+	
+	
+	cancel_button = Button(Browser, text = "Quit",
+		command = Browser.destroy) 
+	cancel_button.grid(row = 7, column = 1)
+	
+		
+			
+	
+	
+	Browser.mainloop()
+
+
+
+
+#-------------------------- Shell_command
+
+def Shell_command():
+	
+	global var_command
+
+	event("Browser")
+
+	Shell = Toplevel()
+	Shell.title("Browser")
+	Shell["bg"] = "bisque"
+	
+	text_spa = Label (Shell, text = "\n ", bg = "bisque")
+	text_spa.grid(row = 0, column = 0, columnspan = 2)	
+	
+	text_shell = Label (Shell, 
+		text = " Send your own shell command to cliens selected. \n ",
+			bg = "bisque")
+	text_shell.grid(row = 1, column = 0, columnspan = 2)
+	
+	text_command = Label (Shell, text = "Shell command : ", bg = "bisque")
+	text_command.grid(row = 2, column = 0)
+	
+	entry_command = Entry(Shell, textvariable = var_command, width = 40)
+	entry_command.grid(row = 2, column = 1)
+
+	OK_button = Button(Shell, text = "OK",
+		command = save_command) 
+	OK_button.grid(row = 3, column = 1)
+	
+	
+		
+	text_spa2 = Label (Shell, text = "\n ", bg = "bisque")
+	text_spa2.grid(row = 4, column = 0, columnspan = 2)
+	
+	button_send = Button(Shell, text = 'Send shell command', command = send_command)
+	button_send.grid(row  = 5, column = 0, sticky = N+S+E+W)
+	
+	button_close = Button(Shell, text = 'Kill shell command', command = kill_command)
+	button_close.grid(row  = 5, column = 1, sticky = N+S+E+W)
+	
+	text_space3 = Label (Shell, text = "\n", bg = "bisque")
+	text_space3.grid (row = 6, column = 0, columnspan = 2)
+		
+	
+	
+	cancel_button = Button(Shell, text = "Quit",
+		command = Shell.destroy) 
+	cancel_button.grid(row = 7, column = 1)
+	
+		
+			
+	
+	
+	Shell.mainloop()
+
+
+
+
+
+
+
+
+
+#-----------------------------------------------------------------------
+#-----------------------------------------------------------------------
 
 
 
@@ -932,11 +1399,16 @@ Window = Tk()
 												   
 Window.title("Client manager")
 Window["bg"] = "bisque"
-Window.geometry("430x650+0+0")
+Window.geometry("440x610+5+5")
+img = PhotoImage(file='face-monkey.gif')
+Window.call('wm', 'iconphoto', Window._w, img)
 Window.protocol("WM_DELETE_WINDOW", handler_win)
 
 
 #---------------------- Variables
+file_path = StringVar()
+file_path.set("    ")
+
 
 var_db = IntVar(value = 0)
 
@@ -965,6 +1437,12 @@ user2_config.set("username")
 var_sup = StringVar()	
 var_sup.set("octave")
 
+var_url = StringVar()
+var_url.set("https://www.gate.cnrs.fr/?lang=fr2")
+
+var_command = StringVar()
+var_command.set("python")
+
 nb = IntVar()
 nb.set(3)
 
@@ -978,12 +1456,13 @@ menufile.add_command(label = "New Client list", command = select_file)
 menufile.add_command(label = "New task file", command = slot_browse)
 menufile.add_command(label = "Quit", command = handler_win) 
 
-
+menutask = Menu(Window)
+menutask.add_command(label = "Program", command = Program)
+menutask.add_command(label = "Browser", command = Browser)
+menutask.add_command(label = "Shell command", command = Shell_command)
 
 menuconfig = Menu(mainmenu)
 menuconfig.add_command(label = "Data Base", command = Config)
-menuconfig.add_command(label = " Support of your task ", 
-	command = Support)
 menuconfig.add_command(label = "Awaking Group number", command = Group)
   
 menuHelp = Menu(mainmenu) 
@@ -991,6 +1470,7 @@ menuHelp.add_command(label = "Help", command = help_cm)
 menuHelp.add_command(label = "About", command = about) 
   
 mainmenu.add_cascade(label = "File", menu = menufile) 
+mainmenu.add_cascade(label = "Task", menu = menutask)
 mainmenu.add_cascade(label = "Settings", menu = menuconfig)
 mainmenu.add_cascade(label = "Help", menu = menuHelp) 
   
@@ -1042,8 +1522,9 @@ path_client.set("Clients_list.csv")
 
 
 text_path_client = Label( frame1, 
-	text = "\n Client list file selected : %s \n" % os.path.basename(path_client.get()), 
-		bg = "bisque", width = 60)
+	text = "\n Client list file selected : %s \n" 
+		% os.path.basename(path_client.get()), 
+			bg = "bisque", width = 60)
 text_path_client.grid(row = 0 , column = 0)
 
 open_csvfile()	
@@ -1066,7 +1547,8 @@ frame2['bg'] = "bisque"
 
 sb = Scrollbar(frame2, orient = "vertical")
 sbh = Scrollbar(frame2, orient = "horizontal")
-text = Text(frame2, width = 15, height = 16, yscrollcommand = sb.set, xscrollcommand = sbh.set)
+text = Text(frame2, width = 15, height = 16, yscrollcommand = sb.set,
+	xscrollcommand = sbh.set)
 
 sb.pack(side = "right", fill = "y")
 sbh.pack(side = "bottom", fill = "x")
@@ -1084,7 +1566,8 @@ def list_box():
 		var = IntVar(value = 0)
 		# set the value of checkboxes to 0
 		
-		cb = Checkbutton(frame2, text = chart[i][0], bg = "white", variable = var, padx = 0, pady = 0, bd = 0)
+		cb = Checkbutton(frame2, text = chart[i][0], bg = "white", 
+			variable = var, padx = 0, pady = 0, bd = 0)
 		vars.append(var)
 		# put values into a list
 		
@@ -1114,7 +1597,7 @@ Frame2.grid(row = 1, column = 0, rowspan = 2)
 frame3 = Frame(Frame_Canvas)
 frame3["bg"] = "bisque"
 
-text_frame3 = Label(frame3, text = "Legend : \n ", bg = "bisque")
+text_frame3 = Label(frame3, text = "Status legend : \n ", bg = "bisque")
 text_frame3.grid(row = 0, column = 0, columnspan = 2)
 
 frame_black = Canvas(frame3, width = 8, height = 8)
@@ -1174,7 +1657,7 @@ frame4.grid(row = 2, column = 1)
 frame5 = Frame(Frame_Canvas)
 frame5["bg"] = "bisque"
 
-refresh = Button(frame5, text = "Refresh status", command = Refresh)
+refresh = Button(frame5, text = "Refresh status", command = refresh)
 refresh.pack()
 
 frame5.grid(row = 3, column = 0, columnspan = 2)
@@ -1188,11 +1671,11 @@ frame6 = Frame(Frame_Canvas)
 frame6["bg"] = "bisque"		
 
 button1 = Button(frame6, text = "wake up", command = wake_up) 						   
-button1.grid(row = 0, column = 0) 
+button1.grid(row = 0, column = 0, sticky = N+S+E+W) 
 # button linked to the wake_up function
 
 button2 = Button(frame6, text = "Shut down", command = shut_down) 					  
-button2.grid(row = 0, column = 1) 
+button2.grid(row = 0, column = 1, sticky = N+S+E+W) 
 # button linked to the shut down function
 
 text_space2 = Label (frame6, text = "\n", bg = "bisque")
@@ -1200,32 +1683,6 @@ text_space2.grid (row = 1, column = 0, columnspan = 2)
 
 frame6.grid(row = 4 , column = 0 , columnspan = 2)
 
-
-#------------------------frame7 : Creation of sart/end task button
-
-
-frame7 = Frame(Frame_Canvas)
-frame7["bg"] = "bisque"
-
-
-file_path = StringVar()
-file_path.set("    ")
-
-text_path = Label( frame7, text = "Task file selected: %s" % os.path.basename(file_path.get()), bg = "bisque")
-text_path.grid(row = 0 , column = 0)
-
-button_task = Button(frame7, text = 'Start Task', command = start_task)
-button_task.grid(row  = 1, column = 0)
-# button linked to the start_task function
-
-button_etask = Button(frame7, text = 'End Task', command = end_task)
-button_etask.grid(row  = 1, column = 1)
-# button linked to the end_task function
-
-text_space3 = Label (frame7, text = "\n", bg = "bisque")
-text_space3.grid (row = 1, column = 0, columnspan = 2)
-
-frame7.grid(row = 5 , column = 0, columnspan = 2)
 
 
 #------------------------frame8: Creation of event_log
@@ -1242,7 +1699,8 @@ frame8 ["bg"] = "bisque"
 sb2 = Scrollbar(frame8, orient = "vertical")
 sb3 = Scrollbar(frame8, orient = "horizontal")
 
-text_box = Text(frame8, height = 8,width = 40, yscrollcommand = sb2.set, xscrollcommand = sb3.set ) 
+text_box = Text(frame8, height = 8,width = 40, yscrollcommand = sb2.set,
+	xscrollcommand = sb3.set ) 
 text_box.grid(row = 0, column = 0, sticky=N+S+E+W)
  
 sb3.grid(row = 1, column = 0, sticky = E+W)
@@ -1268,8 +1726,6 @@ stat_db = vardb
 int2 = 0
 
 	
-	
-	
 
 event("Window launch.")
 	
@@ -1280,6 +1736,8 @@ Canvas_sb.create_window(0,0,  window = Frame_Canvas)
 Frame_Canvas.update_idletasks()
 Canvas_sb.config(scrollregion = Canvas_sb.bbox("all"))	
 
+
+
 Window.config(menu = mainmenu)
 
 
@@ -1288,11 +1746,16 @@ event("Checking busy clients...")
 	
 for client in range(len(chart)):
 	idle(client)
-	busy(client)
+	busy(client, support_task)
 event("Check idle client done.")
 event("Check busy clients done.")
 
 Window.mainloop()
+
+
+
+
+
 
 
 
