@@ -5,7 +5,7 @@
 # This program needs to have the awake, numpy, fping and tkinter librairies
 
 
-# To launch the program just tap in a terminal "sudo python Clientnmanager.py"
+# To launch the program just tap in a terminal "sudo python ClientManager.py"
 
 
 import csv
@@ -832,7 +832,8 @@ def slot_browse():
 	_fpath = tkFileDialog.askopenfilename()
 	# open the TkFileDialog so that user can choose his file
 	
-	file_path.set(_fpath)
+	if _fpath != "":
+		file_path.set(_fpath)
 
 	basename_task =	os.path.basename(file_path.get())
 
@@ -862,6 +863,7 @@ def open_csvfile():
 	
 	
 	
+	
 #--------------------------Definition of select-file
 
 def select_file():
@@ -872,7 +874,8 @@ def select_file():
 	path_file = tkFileDialog.askopenfilename(filetypes = [("Fichier csv", "*.csv")])
 	# open the TkFileDialog so that user can choose his file
 	
-	(path_client).set(path_file)
+	if path_file != "":
+		path_client.set(path_file)
 	text_path_client.config(text = "Client list file selected : %s " % path_client.get())
 	open_csvfile()
 	text.delete("0.0", END)
@@ -884,12 +887,97 @@ def select_file():
 	
 	list_box()
 	# recreate the new listbox with the new data
-	
+	for client in range(len(chart)):
+		idle(client)
 	Window.update()
 	# refresh
 	
 
+#------------------------ Definition of new_dbentry
+
+def new_dbentry():
+	
+	global int2, status_name
+	
+	event("New Database entry.")
+	
+	check_box()
 		
+	my_conv = { FIELD_TYPE.LONG: int }
+	database = MySQLdb.connect(server, user1, pwd, DB, conv= my_conv)
+	cursor = database.cursor()
+		
+	add_session = ("INSERT INTO session (User, Experiment, Site)  VALUES ('%s','%s', '%s')" % (user2, experiment, site))
+	cursor.execute(add_session)
+	database.commit()
+		
+	event ("Database session created")
+		
+	select_session = ("SELECT MAX(SessionID) FROM session")
+	cursor.execute(select_session)
+	nb_session = cursor.fetchall()
+	int1 = reduce(lambda rst, d: rst * 10 + d, nb_session)
+	int2 = reduce(lambda rst, d: rst * 10 + d, int1)
+		
+		
+		
+	for client in range(len(chart)):
+			
+		status_name[client][2] = chart[client][0].lower()
+			
+			
+		if status[client][0] == "1":
+			idle(client)
+			if status[client][1] == "1":
+				status_name[client][0] = "IDDLE"
+			if status[client][1] == "0":
+				status_name[client][0] = "AWAKE"
+			if status[client][1] == "-1":
+				status_name[client][0] = "SLEEPY"	
+			
+				
+			add_subject = ("INSERT INTO subjects (Hostname, Session, TriggerCode, Status)  VALUES ('%s', '%s', '%s', '%s')" % (status_name[client][2], int2, (client +1), status_name[client][0]))
+			cursor.execute(add_subject)
+			database.commit()
+			select_hostname = ("SELECT MAX(SubjectID) FROM subjects")
+			cursor.execute(select_hostname)
+			nb_hostname = int(cursor.fetchone()[0])
+				
+			status_name[client][1] = nb_hostname
+				
+			event("Database subjects created")
+			print("Database subjects created")
+		
+	database.close()
+	event("New entry created.")
+
+
+
+
+#------------------------ Definition of set_statusdb
+
+def set_statusdb():
+	
+	global status_name
+	
+	check_box()
+	
+	for client in range(len(chart)):
+		if status[client][0] == "1":
+			status_name[client][0]= var_status.get() 
+			
+			my_conv = { FIELD_TYPE.LONG: int }
+			database = MySQLdb.connect(server, user1, pwd, DB, conv= my_conv)
+			cursor = database.cursor()
+		
+			update_subject = ("UPDATE subjects SET Status = '%s' WHERE SubjectID = '%s' " % (status_name[client][0], status_name[client][1]))
+			cursor.execute(update_subject)
+			
+			event("Database subjects update")
+			print("Database subjects update")
+		
+	database.close()
+	event("Update of status done.")
 
 #------------------------ Definition of web_wiki
 
@@ -1177,33 +1265,39 @@ def Program():
 	
 	OK_button = Button (Program, text = "OK", command = save_support)
 	OK_button.grid(row = 2, column = 1)
-		
+	
 	text_spac2 = Label (Program, text = "\n ", bg = "bisque")
 	text_spac2.grid(row = 3, column = 0, columnspan = 2)
 	
-	text_path = Label(Program, text = "Task file selected: %s" 
-		% os.path.basename(file_path.get()), bg = "bisque")
-	text_path.grid(row = 4 , column = 0)
-	
+	button_newdb = Button(Program, text = "New Database entry", command = new_dbentry)
+	button_newdb.grid(row = 4, column = 1)
+	 	
 	text_spac3 = Label (Program, text = "\n ", bg = "bisque")
 	text_spac3.grid(row = 5, column = 0, columnspan = 2)
 	
+	text_path = Label(Program, text = "Task file selected: %s" 
+		% os.path.basename(file_path.get()), bg = "bisque")
+	text_path.grid(row = 6 , column = 0)
+	
+	text_spac4 = Label (Program, text = "\n ", bg = "bisque")
+	text_spac4.grid(row = 7, column = 0, columnspan = 2)
+	
 	button_task = Button(Program, text = 'Start Task', command = start_task)
-	button_task.grid(row  = 6, column = 0, sticky = N+S+E+W)
+	button_task.grid(row  = 8, column = 0, sticky = N+S+E+W)
 	# button linked to the start_task function
 
 	button_etask = Button(Program, text = 'End Task', command = end_task)
-	button_etask.grid(row  = 6, column = 1, sticky = N+S+E+W)
+	button_etask.grid(row  = 8, column = 1, sticky = N+S+E+W)
 	# button linked to the end_task function
 
 	text_space3 = Label (Program, text = "\n", bg = "bisque")
-	text_space3.grid (row = 7, column = 0, columnspan = 2)
+	text_space3.grid (row = 9, column = 0, columnspan = 2)
 		
 	
 	
 	cancel_button = Button(Program, text = "Quit",
 		command = Program.destroy) 
-	cancel_button.grid(row = 8, column = 1)
+	cancel_button.grid(row = 10, column = 1)
 	
 	Program.mainloop()
 	
@@ -1285,20 +1379,26 @@ def Browser():
 	text_spa2 = Label (Browser, text = "\n ", bg = "bisque")
 	text_spa2.grid(row = 4, column = 0, columnspan = 2)
 	
-	button_send = Button(Browser, text = 'Send Url', command = send_url)
-	button_send.grid(row  = 5, column = 0, sticky = N+S+E+W)
-	
-	button_close = Button(Browser, text = 'Close Browser', command = close_browser)
-	button_close.grid(row  = 5, column = 1, sticky = N+S+E+W)
+	button_newdb = Button(Browser, text = "New Database entry", command = new_dbentry)
+	button_newdb.grid(row = 5, column = 1)
 	
 	text_space3 = Label (Browser, text = "\n", bg = "bisque")
-	text_space3.grid (row = 6, column = 0, columnspan = 2)
+	text_space3.grid (row = 6, column = 0, columnspan = 2)	
+	
+	button_send = Button(Browser, text = 'Send Url', command = send_url)
+	button_send.grid(row  = 7, column = 0, sticky = N+S+E+W)
+	
+	button_close = Button(Browser, text = 'Close Browser', command = close_browser)
+	button_close.grid(row  = 7, column = 1, sticky = N+S+E+W)
+	
+	text_space4 = Label (Browser, text = "\n", bg = "bisque")
+	text_space4.grid (row = 8, column = 0, columnspan = 2)
 		
 	
 	
 	cancel_button = Button(Browser, text = "Quit",
 		command = Browser.destroy) 
-	cancel_button.grid(row = 7, column = 1)
+	cancel_button.grid(row = 9, column = 1)
 	
 		
 			
@@ -1325,7 +1425,7 @@ def Shell_command():
 	text_spa.grid(row = 0, column = 0, columnspan = 2)	
 	
 	text_shell = Label (Shell, 
-		text = " Send your own shell command to cliens selected. \n ",
+		text = " Send your own shell command to clients selected. \n ",
 			bg = "bisque")
 	text_shell.grid(row = 1, column = 0, columnspan = 2)
 	
@@ -1344,20 +1444,26 @@ def Shell_command():
 	text_spa2 = Label (Shell, text = "\n ", bg = "bisque")
 	text_spa2.grid(row = 4, column = 0, columnspan = 2)
 	
+	button_newdb = Button(Shell, text = "New Database entry", command = new_dbentry)
+	button_newdb.grid(row = 5, column = 1)
+	
+	text_spa3 = Label (Shell, text = "\n ", bg = "bisque")
+	text_spa3.grid(row = 6, column = 0, columnspan = 2)
+	
 	button_send = Button(Shell, text = 'Send shell command', command = send_command)
-	button_send.grid(row  = 5, column = 0, sticky = N+S+E+W)
+	button_send.grid(row  = 7, column = 0, sticky = N+S+E+W)
 	
 	button_close = Button(Shell, text = 'Kill shell command', command = kill_command)
-	button_close.grid(row  = 5, column = 1, sticky = N+S+E+W)
+	button_close.grid(row  = 7, column = 1, sticky = N+S+E+W)
 	
-	text_space3 = Label (Shell, text = "\n", bg = "bisque")
-	text_space3.grid (row = 6, column = 0, columnspan = 2)
+	text_space4 = Label (Shell, text = "\n", bg = "bisque")
+	text_space4.grid (row = 8, column = 0, columnspan = 2)
 		
 	
 	
 	cancel_button = Button(Shell, text = "Quit",
 		command = Shell.destroy) 
-	cancel_button.grid(row = 7, column = 1)
+	cancel_button.grid(row = 9, column = 1)
 	
 		
 			
@@ -1365,6 +1471,54 @@ def Shell_command():
 	
 	Shell.mainloop()
 
+
+
+
+
+#-------------------------- Status_db
+
+def Status_db():
+	
+	global var_status
+
+	event("Set Database client status")
+
+	Status = Toplevel()
+	Status.title("Set Database client status")
+	Status["bg"] = "bisque"
+	
+	text_spa = Label (Status, text = "\n ", bg = "bisque")
+	text_spa.grid(row = 0, column = 0, columnspan = 3)	
+	
+	text_line = Label (Status, 
+		text = " Set manualy status of clients selected. \n ",
+			bg = "bisque")
+	text_line.grid(row = 1, column = 0, columnspan = 3)
+	
+	text_status = Label (Status, text = "Status : ", bg = "bisque")
+	text_status.grid(row = 2, column = 0)
+	
+	entry_status = Entry(Status, textvariable = var_status, width = 10)
+	entry_status.grid(row = 2, column = 1)
+	
+	text_comment = Label (Status, text = "(BUSY, HALTED, IDLE or RUNNING)", bg = "bisque")
+	text_comment.grid(row = 2, column = 2)
+
+	OK_button = Button(Status, text = "OK",
+		command = set_statusdb) 
+	OK_button.grid(row = 3, column = 0)
+	
+	
+		
+	cancel_button = Button(Status, text = "Quit",
+		command = Status.destroy) 
+	cancel_button.grid(row = 3, column = 1)
+	
+		
+			
+	
+	
+	Status.mainloop()
 
 
 
@@ -1406,9 +1560,6 @@ Window.protocol("WM_DELETE_WINDOW", handler_win)
 
 
 #---------------------- Variables
-file_path = StringVar()
-file_path.set("    ")
-
 
 var_db = IntVar(value = 0)
 
@@ -1416,7 +1567,7 @@ server_config = StringVar()
 server_config.set("mysql.fr")
 
 DB_config = StringVar()
-DB_config.set("databasename")
+DB_config.set("Databasename")
 
 user1_config = StringVar()
 user1_config.set("username")
@@ -1426,13 +1577,16 @@ pwd_config.set("password")
 	
 
 site_config = StringVar()
-site_config.set("site")
+site_config.set("sitename")
 
 experiment_config = StringVar()
-experiment_config.set("experimetname")
+experiment_config.set("experimentname")
 
 user2_config = StringVar()
 user2_config.set("username")
+
+file_path = StringVar()
+file_path.set("    ")
 
 var_sup = StringVar()	
 var_sup.set("octave")
@@ -1442,6 +1596,9 @@ var_url.set("https://www.gate.cnrs.fr/?lang=fr2")
 
 var_command = StringVar()
 var_command.set("python")
+
+var_status = StringVar()
+var_status.set("")
 
 nb = IntVar()
 nb.set(3)
@@ -1464,7 +1621,8 @@ menutask.add_command(label = "Shell command", command = Shell_command)
 menuconfig = Menu(mainmenu)
 menuconfig.add_command(label = "Data Base", command = Config)
 menuconfig.add_command(label = "Awaking Group number", command = Group)
-  
+menuconfig.add_command(label = "Set Database client status", command = Status_db)
+ 
 menuHelp = Menu(mainmenu) 
 menuHelp.add_command(label = "Help", command = help_cm)
 menuHelp.add_command(label = "About", command = about) 
@@ -1751,7 +1909,6 @@ event("Check idle client done.")
 event("Check busy clients done.")
 
 Window.mainloop()
-
 
 
 
